@@ -54,9 +54,9 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
 
     @Override
     public void setInitial(STATE aState, boolean isInitial) throws StateNotFoundException {
+        if(!checkIfStateExist(aState))
+            throw new StateNotFoundException(aState);
         if(isInitial){
-            if(!checkIfStateExist(aState))
-                throw new StateNotFoundException(aState);
             initialStates.add(aState);
         }
     }
@@ -183,15 +183,13 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
     }
 
     private boolean isInTheSetOfInitialStates(STATE state) {
-        if(this.initialStates.contains(state))
-            return true;
-        return false;
+        return this.initialStates.contains(state);
     }
 
     private boolean stateIsLabled(STATE state) {
         if(!this.labelingFunctions.containsKey(state))
             return false;
-        if(this.labelingFunctions.get(state).size()==0)
+        if(this.labelingFunctions.get(state).isEmpty())
             return false;
         return true;
     }
