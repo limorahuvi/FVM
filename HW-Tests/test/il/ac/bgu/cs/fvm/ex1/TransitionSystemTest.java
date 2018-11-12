@@ -93,14 +93,14 @@ public class TransitionSystemTest {
 		assertEquals( set(Q), ts.getLabel(S1) );
 		ts.addToLabel(S1,P);
 		assertEquals( set(Q,P), ts.getLabel(S1) );
-	}
+	} //V
     
     @Test(timeout = 2000)
 	public void labeledStateLabelWorks_emptysetLabel() throws Exception {
 		ts.addState(S1);
 		ts.addAtomicProposition(Q);
 		assertEquals( set(), ts.getLabel(S1) );
-	}
+	} //V
     
     @Test(expected=StateNotFoundException.class, timeout = 2000)
 	public void labeledStateInvalidStateError() throws Exception {
