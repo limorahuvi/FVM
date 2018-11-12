@@ -143,7 +143,7 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
     public void removeAction(ACTION action) throws FVMException {
         for(Transition<STATE,ACTION> t : this.transitions) {
             if(t.getAction().equals(action))
-                return;
+                throw new DeletionOfAttachedActionException(t.getFrom(), TransitionSystemPart.ACTIONS);
         }
         this.actions.remove(action);
 
