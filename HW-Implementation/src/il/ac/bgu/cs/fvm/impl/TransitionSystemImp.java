@@ -160,7 +160,7 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
 
     @Override
     public void removeLabel(STATE s, ATOMIC_PROPOSITION l) {
-        this.labelingFunctions.remove(s, l);
+        this.labelingFunctions.get(s).remove(l);
     }
 
     @Override

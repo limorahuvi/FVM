@@ -83,7 +83,7 @@ public class TransitionSystemTest {
 		ts.addToLabel(S1,Q);
 		ts.removeLabel(S1,Q);
 		ts.removeAtomicProposition(Q);
-	}
+	}// V
 
     @Test(timeout = 2000)
 	public void labeledStateLabelWorks() throws Exception {
