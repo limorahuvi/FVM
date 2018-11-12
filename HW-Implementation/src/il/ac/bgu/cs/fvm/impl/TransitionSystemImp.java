@@ -69,13 +69,12 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
 
     @Override
     public void addTransition(Transition<STATE, ACTION> t) throws FVMException {
-
         if(checkIfStateOrActionExist(t))
         {
             this.transitions.add((t));
         }
         else{
-            throw new FVMException("State or an action doesnt exist");
+            throw new InvalidTransitionException(t);
         }
     }
 
@@ -213,7 +212,7 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
     }
 
     private boolean checkIfStateOrActionExist(Transition<STATE, ACTION> t) {
-        if(this.states.contains(t.getFrom()) && this.states.contains(t.getTo()) && this.states.contains(t.getAction())){
+        if(this.states.contains(t.getFrom()) && this.states.contains(t.getTo()) && this.actions.contains(t.getAction())){
             return true;
         }
         return false;
