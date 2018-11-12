@@ -112,7 +112,9 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
 
     @Override
     public Set<ATOMIC_PROPOSITION> getLabel(STATE s) {
-        this.checkIfStateExist(s);
+        if(!this.checkIfStateExist(s)){
+            throw new StateNotFoundException(s);
+        }
         if(this.labelingFunctions.containsKey(s))
             return this.labelingFunctions.get(s);
         return new HashSet<ATOMIC_PROPOSITION>();
