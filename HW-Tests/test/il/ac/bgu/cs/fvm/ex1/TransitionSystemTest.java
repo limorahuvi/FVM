@@ -74,7 +74,7 @@ public class TransitionSystemTest {
 		ts.addAtomicProposition(Q);
 		ts.addToLabel(S1, Q);
 		ts.removeAtomicProposition(Q);
-	}
+	} //V
 
 	@Test(timeout = 2000)
 	public void usedLabelCanBeRemovedAfterCleaning() throws Exception {

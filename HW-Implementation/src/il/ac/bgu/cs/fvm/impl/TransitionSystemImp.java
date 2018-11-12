@@ -5,10 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import il.ac.bgu.cs.fvm.exceptions.DeletionOfAttachedStateException;
-import il.ac.bgu.cs.fvm.exceptions.FVMException;
-import il.ac.bgu.cs.fvm.exceptions.StateNotFoundException;
-import il.ac.bgu.cs.fvm.exceptions.TransitionSystemPart;
+import il.ac.bgu.cs.fvm.exceptions.*;
 import il.ac.bgu.cs.fvm.transitionsystem.Transition;
 import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
 
@@ -155,7 +152,7 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
     public void removeAtomicProposition(ATOMIC_PROPOSITION p) throws FVMException {
         for(Map.Entry<STATE, Set<ATOMIC_PROPOSITION>> entry: this.labelingFunctions.entrySet()) {
             if(entry.getValue().contains(p))
-                return;
+                throw new DeletionOfAttachedAtomicPropositionException(entry.getKey(), TransitionSystemPart.ATOMIC_PROPOSITIONS);
         }
         this.atomicPropositions.remove(p);
 
