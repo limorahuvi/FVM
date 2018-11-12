@@ -58,7 +58,7 @@ public class TransitionSystemTest {
 		ts.addState(S1);
 		ts.setInitial(S1, true);
 		ts.removeState(S1);
-	} //V - ????
+	} //V
 
 	@Test(timeout = 2000)
 	public void initialStateCanBeRemovedAfterCleaning() throws Exception {
@@ -66,7 +66,7 @@ public class TransitionSystemTest {
 		ts.setInitial(S1, true);
 		ts.setInitial(S1, false);
 		ts.removeState(S1);
-	} //X
+	} //V
 
 	@Test(expected = DeletionOfAttachedAtomicPropositionException.class, timeout=2000)
 	public void usedLabelCantBeRemoved() throws Exception {

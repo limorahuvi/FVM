@@ -59,6 +59,9 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
         if(isInitial){
             initialStates.add(aState);
         }
+        else if(this.initialStates.contains(aState)){
+            initialStates.remove(aState);
+        }
     }
 
     @Override
