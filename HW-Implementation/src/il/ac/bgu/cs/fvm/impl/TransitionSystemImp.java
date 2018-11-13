@@ -101,12 +101,11 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
     @Override
     public void addToLabel(STATE s, ATOMIC_PROPOSITION l) throws FVMException {
         if(!checkIfStateExist(s))
-            throw new StateNotFoundException(s);
+        	throw new InvalidLablingPairException(s, l);
         if(!checkIfAtomicPrositionExist(l))
-            throw new FVMException("Atomic Proposition doesn't exist");
+        	throw new InvalidLablingPairException(s, l);
         if(!this.labelingFunctions.get(s).contains(l))
             this.labelingFunctions.get(s).add(l);
-
     }
 
     @Override
@@ -217,6 +216,7 @@ public class TransitionSystemImp<STATE,ACTION,ATOMIC_PROPOSITION>
         }
         return false;
     }
+    
 
 
 }
