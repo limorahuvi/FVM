@@ -26,7 +26,7 @@ public class ProgramGraphImpl<L, A> implements ProgramGraph<L, A> {
         
         @Override
 	public void addInitalization(List<String> init) {
-        	initialstates.add(init);
+    	initialstates.add(init);
 	}
 
 	@Override
@@ -46,15 +46,14 @@ public class ProgramGraphImpl<L, A> implements ProgramGraph<L, A> {
 
 	@Override
 	public void addTransition(PGTransition<L, A> t) {
-			L from=t.getFrom();
-			L to =t.getTo();
-			if(locations.contains(from)){
-				if(locations.contains(to)){
-					p_transitions.add(t);
-				}
-				 throw new FVMException("Invalid transition");
-			}
-			 throw new FVMException("Invalid transition");
+		L from=t.getFrom();
+		L to =t.getTo();
+		if(locations.contains(from) && locations.contains(to)){
+			p_transitions.add(t);
+		}
+		else{
+			throw new FVMException("Invalid transition");
+		}
 	}
 
 	@Override

@@ -40,25 +40,24 @@ public class FvmFacadeImpl implements FvmFacade {
 
     @Override
     public <S, A, P> boolean isActionDeterministic(TransitionSystem<S, A, P> ts) {
-    	
-    		Set<S> init_set=ts.getInitialStates();
-			int size_set_init=init_set.size();
-			if(size_set_init<=1){
-    			Set<S> states=ts.getStates();
-        		Set<A> actions=ts.getActions();
-        		for (A action :actions) {
-        			for (S state :states) {
-        				Set<S> post_set=post(ts, state, action);
-        				int size_post=post_set.size();
-        				if (size_post > 1) {
-                           return false;
-                       }
+        Set<S> init_set=ts.getInitialStates();
+        int size_set_init=init_set.size();
+        if(size_set_init<=1){
+            Set<S> states=ts.getStates();
+            Set<A> actions=ts.getActions();
+            for (A action :actions) {
+                for (S state :states) {
+                    Set<S> post_set=post(ts, state, action);
+                    int size_post=post_set.size();
+                    if (size_post > 1) {
+                       return false;
                    }
                }
-			}
-			else
-				return false;
-			return true;
+           }
+        }
+        else
+            return false;
+        return true;
     }
 
     
@@ -134,9 +133,6 @@ public class FvmFacadeImpl implements FvmFacade {
         }
         return false;
     }
-
-
-
 
     @Override
     public <S, A, P> boolean isInitialExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
@@ -305,7 +301,6 @@ public class FvmFacadeImpl implements FvmFacade {
         return pre_set;
     }
 
-
     @Override
     public <S, A> Set<S> reach(TransitionSystem<S, A, ?> ts) {
 
@@ -391,6 +386,9 @@ public class FvmFacadeImpl implements FvmFacade {
     public ProgramGraph<String, String> programGraphFromNanoPromela(InputStream inputStream) throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement programGraphFromNanoPromela
     }
+
+    //=============================================================================
+    //=============================================================================
 
     @Override
     public <S, A, P, Saut> VerificationResult<S> verifyAnOmegaRegularProperty(TransitionSystem<S, A, P> ts, Automaton<Saut, P> aut) {
