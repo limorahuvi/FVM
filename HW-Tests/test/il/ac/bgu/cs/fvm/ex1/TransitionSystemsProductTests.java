@@ -20,7 +20,7 @@ import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
 import il.ac.bgu.cs.fvm.util.Pair;
 
 public class TransitionSystemsProductTests {
-
+	//V
 	FvmFacade fvmFacadeImpl = FvmFacade.createInstance();
 
 	@SuppressWarnings("unchecked")
@@ -81,7 +81,7 @@ public class TransitionSystemsProductTests {
 		assertEquals(set(), ts.getLabel(p(p(State.S1, State.S0), State.S1)));
 		assertEquals(set(), ts.getLabel(p(p(State.S1, State.S1), State.S0)));
 
-	}
+	}//V
 
 	@SuppressWarnings("unchecked")
 	@Test // See page 37, Figure 2.4 in the book
@@ -131,7 +131,7 @@ public class TransitionSystemsProductTests {
 		assertEquals(set(), ts.getLabel(p("green", "green")));
 		assertEquals(set("tl2-is-red"), ts.getLabel(p("green", "red")));
 		assertEquals(set("tl2-is-red", "tl1-is-red"), ts.getLabel(p("red", "red")));
-	}
+	}//V
 
 	@SuppressWarnings("unchecked")
 	@Test

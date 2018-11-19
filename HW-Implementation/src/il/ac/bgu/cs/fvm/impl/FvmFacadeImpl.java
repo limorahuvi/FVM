@@ -333,14 +333,133 @@ public class FvmFacadeImpl implements FvmFacade {
      
     @Override
     public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1, TransitionSystem<S2, A, P> ts2) {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement interleave
-    }//limor
+        Set<A> handShakingActions = Collections.emptySet();
+        return interleave(ts1, ts2, handShakingActions);
+    }
 
+    private <S1,S2> Set<Pair<S1, S2>>  interleaveStates(Set<S1> states1, Set<S2> states2){
+        Set<Pair<S1, S2>> states = new HashSet<>();
+        for (S1 s1: states1) {
+            for(S2 s2: states2){
+                states.add(Pair.pair(s1,s2));
+            }
+        }
+        return states;
+    }
+
+    private <T> Set<T> union (Set<T> s1, Set<T> s2){
+        Set<T> unioned = Stream.concat(s1.stream(), s2.stream()).collect(Collectors.toSet());
+        return unioned;
+    }
 
     @Override
     public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1, TransitionSystem<S2, A, P> ts2, Set<A> handShakingActions) {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement interleave
-    }//limor
+        Set<Pair<S1, S2>>  interleaveInitialStates = interleaveStates(ts1.getInitialStates(), ts2.getInitialStates());
+        Set<Pair<S1, S2>>  interleaveStates = interleaveStates(ts1.getStates(), ts2.getStates());
+        Set<A> actions = union(ts1.getActions(), ts2.getActions());
+
+        Set<Transition<Pair<S1, S2>,A>> transitions = getTransitionsWithoutHandShaking(ts1.getTransitions(), interleaveStates, handShakingActions, true);
+        transitions = union(transitions, getTransitionsWithoutHandShaking(ts2.getTransitions(), interleaveStates, handShakingActions, false));
+        transitions = union(transitions, getTransitionsWithHandShaking(ts1.getTransitions(), ts2.getTransitions(), handShakingActions));
+
+        Set<P> atomicPropositions = union(ts1.getAtomicPropositions(), ts2.getAtomicPropositions());
+
+        TransitionSystem<Pair<S1, S2>, A, P> newTS = createTransitionSystem(interleaveInitialStates, interleaveStates, actions, transitions, atomicPropositions);
+
+        removeUnreachables(newTS);
+
+        interleaveLabels(newTS, ts1, ts2);
+
+        return newTS;
+    }
+
+    private <A, S2, S1, P> void removeUnreachables(TransitionSystem<Pair<S1,S2>,A,P> ts) {
+        Set<Pair<S1,S2>> reachablesStates = reach(ts);
+        Set<Pair<S1,S2>> unreachablesStates = new HashSet<>();
+        for(Pair<S1,S2> s:ts.getStates()){
+            if(!reachablesStates.contains(s)){
+                unreachablesStates.add(s);
+            }
+        }
+        Set<Transition<Pair<S1,S2>, A>> unreachablesTransitions = new HashSet<>();
+        for(Transition<Pair<S1,S2>, A> t : ts.getTransitions()){
+            for(Pair<S1,S2> s : unreachablesStates){
+                if(t.getFrom().equals(s)||t.getTo().equals(s)){
+                    unreachablesTransitions.add(t);
+                }
+            }
+        }
+
+        for(Transition<Pair<S1,S2>, A> t : unreachablesTransitions){
+            ts.removeTransition(t);
+        }
+
+        for(Pair<S1,S2> s : unreachablesStates){
+            ts.removeState(s);
+        }
+
+    }
+
+    private <P, S1, S2, A> void interleaveLabels(TransitionSystem<Pair<S1,S2>,A,P> newTS, TransitionSystem<S1,A,P> ts1, TransitionSystem<S2,A,P> ts2) {
+        for(Pair<S1,S2> s : newTS.getStates()) {
+            for (P label : ts1.getLabel(s.getFirst())) {
+                newTS.addToLabel(s, label);
+            }
+            for (P label : ts2.getLabel(s.getSecond())) {
+                newTS.addToLabel(s, label);
+            }
+        }
+    }
+
+    private <S2, P, A, S1> TransitionSystem<Pair<S1,S2>,A,P> createTransitionSystem(Set<Pair<S1,S2>> interleaveInitialStates, Set<Pair<S1,S2>> interleaveStates, Set<A> actions, Set<Transition<Pair<S1,S2>,A>> transitions, Set<P> atomicPropositions) {
+        TransitionSystem<Pair<S1, S2>, A, P> ts = createTransitionSystem();
+        ts.addAllStates(interleaveStates);
+        for(Pair<S1,S2> s : interleaveInitialStates){
+            ts.setInitial(s, true);
+        }
+        ts.addAllActions(actions);
+        ts.addAllAtomicPropositions(atomicPropositions);
+        for (Transition<Pair<S1,S2>,A> t:transitions) {
+            ts.addTransition(t);
+
+        }
+        return ts;
+    }
+
+    private <A, S1, S2> Set<Transition<Pair<S1, S2>,A>> getTransitionsWithHandShaking(Set<Transition<S1,A>> transitions1, Set<Transition<S2,A>> transitions2, Set<A> handShakingActions) {
+        Set<Transition<Pair<S1, S2>,A>> transitions = new HashSet<>();
+        for(A a : handShakingActions){
+            for(Transition<S1,A> t1: transitions1){
+                for(Transition<S2,A> t2: transitions2){
+                    if(t1.getAction().equals(a) && t2.getAction().equals(a)){
+                        transitions.add(new Transition<>(Pair.pair(t1.getFrom(), t2.getFrom()), a, Pair.pair(t1.getTo(), t2.getTo())));
+                    }
+                }
+            }
+        }
+        return transitions;
+    }
+
+    private <A, S1,S2, S> Set<Transition<Pair<S1, S2>,A>> getTransitionsWithoutHandShaking(Set<Transition<S,A>> transitionsFromTS, Set<Pair<S1,S2>> interleaveStates, Set<A> handShakingActions, boolean isFirstInStatePair) {
+        Set<Transition<Pair<S1, S2>,A>> transitions = new HashSet<>();
+        Set<Transition<S,A>> notHandShakingTransition = new HashSet<>();
+        for(Transition<S,A> t : transitionsFromTS){
+            if(!handShakingActions.contains(t.getAction())){
+                notHandShakingTransition.add(t);
+            }
+        }
+        for(Transition<S,A> t: notHandShakingTransition){
+            for(Pair<S1,S2> s1: interleaveStates){
+                for(Pair<S1,S2> s2: interleaveStates){
+                    if((isFirstInStatePair && t.getFrom().equals(s1.getFirst()) && t.getTo().equals(s2.getFirst()) && s1.getSecond().equals(s2.getSecond()))||
+                            (!isFirstInStatePair && t.getFrom().equals(s1.getSecond()) && t.getTo().equals(s2.getSecond()) && s1.getFirst().equals(s2.getFirst()))){
+                        transitions.add(new Transition<>(s1, t.getAction(), s2));
+                    }
+                }
+            }
+        }
+        return transitions;
+    }
 
     @Override
     public <L, A> ProgramGraph<L, A> createProgramGraph() {
