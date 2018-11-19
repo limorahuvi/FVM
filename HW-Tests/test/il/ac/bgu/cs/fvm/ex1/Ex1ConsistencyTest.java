@@ -17,7 +17,7 @@ import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
  * Testing the consistency of a transition system implementation.
  * @author michael
  */
-//VVVVVVVVVV
+
 public class Ex1ConsistencyTest {
     
     FvmFacade sut = null;

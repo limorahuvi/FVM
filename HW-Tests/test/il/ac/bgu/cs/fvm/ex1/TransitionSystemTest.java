@@ -26,7 +26,7 @@ import static org.junit.Assert.fail;
 /**
  * Set of basic tests for {@link TransitionSystem} implementation.
  */
-//VVVVVVVVVV
+//V
 public class TransitionSystemTest {
     
     public static enum States { S1, S2, S3 }

@@ -12,7 +12,7 @@ import static org.junit.Assert.assertTrue;
  *
  * @author michael
  */
-//VVVVVVVVVV
+
 public class Ex1DeterminismTest {
 
     FvmFacade sut = null;
