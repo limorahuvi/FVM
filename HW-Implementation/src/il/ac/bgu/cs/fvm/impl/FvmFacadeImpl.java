@@ -10,6 +10,7 @@ import il.ac.bgu.cs.fvm.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.fvm.ltl.LTL;
 import il.ac.bgu.cs.fvm.programgraph.ActionDef;
 import il.ac.bgu.cs.fvm.programgraph.ConditionDef;
+import il.ac.bgu.cs.fvm.programgraph.PGTransition;
 import il.ac.bgu.cs.fvm.programgraph.ProgramGraph;
 import il.ac.bgu.cs.fvm.transitionsystem.AlternatingSequence;
 import il.ac.bgu.cs.fvm.transitionsystem.Transition;
@@ -352,6 +353,23 @@ public class FvmFacadeImpl implements FvmFacade {
         return unioned;
     }
 
+    private <T> List<T> unionToList (Set<T> s1, Set<T> s2){
+        List<T> unioned = Stream.concat(s1.stream(), s2.stream()).collect(Collectors.toList());
+        return unioned;
+    }
+
+    private <T> Set<T> intersection (Set<T> s1, Set<T> s2){
+        Set<T> intersectioned = new HashSet<>();
+        for(T a:s1){
+            for(T b:s2){
+                if(a.equals(b)){
+                    intersectioned.add(a);
+                }
+            }
+        }
+        return intersectioned;
+    }
+
     @Override
     public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1, TransitionSystem<S2, A, P> ts2, Set<A> handShakingActions) {
         Set<Pair<S1, S2>>  interleaveInitialStates = interleaveStates(ts1.getInitialStates(), ts2.getInitialStates());
@@ -461,15 +479,73 @@ public class FvmFacadeImpl implements FvmFacade {
         return transitions;
     }
 
+
+
     @Override
     public <L, A> ProgramGraph<L, A> createProgramGraph() {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement createProgramGraph
-    }//limor
+        return new ProgramGraphImpl<>();
+    }
 
     @Override
     public <L1, L2, A> ProgramGraph<Pair<L1, L2>, A> interleave(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2) {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement interleave
-    }//limor
+//        private Set<PGTransition<L, A>> p_transitions;
+
+        Set<Pair<L1,L2>> locations_init = interleaveStates(pg1.getInitialLocations(), pg2.getInitialLocations());
+        Set<Pair<L1,L2>> locations = interleaveStates(pg1.getLocations(), pg2.getLocations());
+        Set<List<String>> initialstates = interleaveInitPG(pg1.getInitalizations(), pg2.getInitalizations());
+        Set<PGTransition<Pair<L1,L2>, A>> p_transitions = getTransitionsForPG(pg1.getTransitions(),locations, true);
+        p_transitions = union(p_transitions,getTransitionsForPG(pg2.getTransitions(),locations, false));
+        ProgramGraph<Pair<L1,L2>,A> pg = createProgramGraph(locations_init, locations,initialstates,p_transitions);
+        return pg;
+    }
+
+    private Set<List<String>> interleaveInitPG(Set<List<String>> init1, Set<List<String>> init2) {
+        Set<List<String>> init = new HashSet<>();
+        for(List<String> i1 : init1){
+            for(List<String> i2 : init2){
+                init.add(Stream.concat(i1.stream(), i2.stream()).collect(Collectors.toList()));
+            }
+
+        }
+        return init;
+    }
+
+    private <L2, A, L1> ProgramGraph<Pair<L1,L2>,A> createProgramGraph(Set<Pair<L1,L2>> locations_init, Set<Pair<L1,L2>> locations, Set<List<String>> initialstates, Set<PGTransition<Pair<L1,L2>,A>> p_transitions) {
+        ProgramGraph<Pair<L1,L2>,A> pg = createProgramGraph();
+        for(Pair<L1,L2> l : locations){
+            pg.addLocation(l);
+        }
+        for(Pair<L1,L2> l : locations_init){
+            pg.setInitial(l, true);
+        }
+        for(List<String> l : initialstates){
+            pg.addInitalization(l);
+        }
+        for(PGTransition<Pair<L1,L2>,A> l : p_transitions){
+            pg.addTransition(l);
+        }
+
+
+        return pg;
+    }
+
+    private <L2, A, L1, L> Set<PGTransition<Pair<L1,L2>,A>> getTransitionsForPG(Set<PGTransition<L,A>> transitions, Set<Pair<L1,L2>> locations, boolean isFirstInStatePair) {
+        Set<PGTransition<Pair<L1,L2>,A>> interleaved_transitions = new HashSet<>();
+
+        for(PGTransition<L,A> t: transitions){
+            for(Pair<L1,L2> s1: locations){
+                for(Pair<L1,L2> s2: locations){
+                    if((isFirstInStatePair && t.getFrom().equals(s1.getFirst()) && t.getTo().equals(s2.getFirst()) && s1.getSecond().equals(s2.getSecond()))||
+                            (!isFirstInStatePair && t.getFrom().equals(s1.getSecond()) && t.getTo().equals(s2.getSecond()) && s1.getFirst().equals(s2.getFirst()))){
+                        interleaved_transitions.add(new PGTransition<>(s1,t.getCondition(), t.getAction(), s2));
+                    }
+                }
+            }
+        }
+        return interleaved_transitions;
+
+
+    }
 
     @Override
     public TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> transitionSystemFromCircuit(Circuit c) {
