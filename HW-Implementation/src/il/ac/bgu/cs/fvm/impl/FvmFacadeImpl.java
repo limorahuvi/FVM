@@ -959,27 +959,28 @@ public class FvmFacadeImpl implements FvmFacade {
                 ts.addTransition(new Transition<>(fromState, t.getAction(), newState));
             }
         }
+
     }
 
     private <A, L> Set<Transition<List<L>,A>> getHandshakesFromCS(List<ProgramGraph<L,A>> pgs, Pair<List<L>, Map<String, Object>> fromState, List<List<PGTransition<L, A>>> transitionsByPGS) {
         Set<Transition<List<L>,A>> handshakes = new HashSet<>();
         ParserBasedInterleavingActDef iad = new ParserBasedInterleavingActDef();
-
-        for(int i=0; i<pgs.size(); i++){
-            for(int j=0; j<pgs.size(); j++){
-                if(i==j){
-                    break;
-                }
+        int size = pgs.size();
+        for(int i=0; i<size; i++){
+            for(int j=0; j<size; j++){
                 List<PGTransition<L, A>> transitions1 = transitionsByPGS.get(i);
                 List<PGTransition<L, A>> transitions2 = transitionsByPGS.get(j);
-                for(PGTransition<L, A> t1 : transitions1){
-                    for(PGTransition<L, A> t2 : transitions2){
-                        String act = t1.getAction().toString() + " | " + t2.getAction().toString();
-                        if (iad.isMatchingAction(act)) {
-                            List<L> tmp = new ArrayList<>(fromState.getFirst());
-                            tmp.set(i, t1.getTo());
-                            tmp.set(j, t2.getTo());
-                            handshakes.add(new Transition<>(fromState.getFirst(), (A) act, tmp));
+                if(i!=j) {
+                    for (PGTransition<L, A> t1 : transitions1) {
+                        for (PGTransition<L, A> t2 : transitions2) {
+                            String act = t1.getAction().toString() + "|" + t2.getAction().toString();
+                            if (iad.isMatchingAction(act)) {
+                                List<L> tmp = new ArrayList<>();
+                                tmp.addAll(fromState.getFirst());
+                                tmp.set(i, t1.getTo());
+                                tmp.set(j, t2.getTo());
+                                handshakes.add(new Transition<>(fromState.getFirst(), (A) act, tmp));
+                            }
                         }
                     }
                 }
@@ -991,8 +992,10 @@ public class FvmFacadeImpl implements FvmFacade {
     private <A, L> List<List<PGTransition<L,A>>> getTransitionsByPgsFromCS(List<ProgramGraph<L,A>> pgs, Pair<List<L>, Map<String, Object>> fromState) {
         ParserBasedCondDef cd = new ParserBasedCondDef();
         List<List<PGTransition<L,A>>> trans = new ArrayList<>();
-        for(int i=0; i<pgs.size(); i++){
-            List<PGTransition<L,A>> tempTrans = new ArrayList<>();
+        List<PGTransition<L,A>> tempTrans = null;
+        int size = pgs.size();
+        for(int i=0; i<size; i++){
+            tempTrans = new ArrayList<>();
             L loc = fromState.getFirst().get(i);
             for(PGTransition<L,A> t : pgs.get(i).getTransitions()){
                 if(fromState.getSecond() != null &&
@@ -1010,6 +1013,8 @@ public class FvmFacadeImpl implements FvmFacade {
         ParserBasedActDef ad = new ParserBasedActDef();
         ParserBasedCondDef cd = new ParserBasedCondDef();
         ParserBasedInterleavingActDef iad = new ParserBasedInterleavingActDef();
+        List<L> toState = null;
+        Pair<List<L>, Map<String, Object>> newState = null;
         for (int i = 0; i < pgs.size(); i++) {
             Set<PGTransition<L, A>> transitions = pgs.get(i).getTransitions();
             for (PGTransition<L, A> trans : transitions) {
@@ -1018,9 +1023,10 @@ public class FvmFacadeImpl implements FvmFacade {
                             cd.evaluate(fromState.getSecond(), trans.getCondition()) &&
                             !iad.isOneSidedAction(trans.getAction().toString())) {
                         eval = ad.effect(fromState.getSecond(), trans.getAction());
-                        List<L> toState = new ArrayList<>(fromState.getFirst());
+                        toState = new ArrayList<>();
+                        toState.addAll(fromState.getFirst());
                         toState.set(i, trans.getTo());
-                        Pair<List<L>, Map<String, Object>> newState = Pair.pair(toState, eval);
+                        newState = Pair.pair(toState, eval);
                         if (newState.getSecond() != null) {
                             if (!checked.contains(newState)) {
                                 toBeChecked.add(newState);
@@ -1090,7 +1096,8 @@ public class FvmFacadeImpl implements FvmFacade {
                 Set<List<L>> tempInitialLoc = new HashSet<>();
                 for(List<L> initLoc : initialLoc){
                     for(L loc : pg.getInitialLocations()){
-                        List<L> temp = new ArrayList<>(initLoc);
+                        List<L> temp = new ArrayList<>();
+                        temp.addAll(initLoc);
                         temp.add(loc);
                         tempInitialLoc.add(temp);
                     }
