@@ -9,5 +9,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="HW-Definitions" />
     <orderEntry type="module" module-name="HW-Tests" />
+    <orderEntry type="library" name="lib1" level="project" />
   </component>
 </module>
