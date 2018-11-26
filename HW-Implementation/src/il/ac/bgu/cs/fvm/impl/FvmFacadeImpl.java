@@ -41,54 +41,67 @@ public class FvmFacadeImpl implements FvmFacade {
         if(size_set_init<=1){
             Set<S> states=ts.getStates();
             Set<A> actions=ts.getActions();
-            for (A action :actions) {
-                for (S state :states) {
-                    Set<S> post_set=post(ts, state, action);
-                    int size_post=post_set.size();
-                    if (size_post > 1) {
-                       return false;
-                   }
-               }
-           }
+           return isActionDeterministic_help(actions,states,ts);
         }
         else
             return false;
-        return true;
     }
 
     
-    @Override
+    private <S, A, P> boolean isActionDeterministic_help(Set<A> actions, Set<S> states,TransitionSystem<S, A, P> ts) {
+    	  for (A action :actions) {
+              for (S state :states) {
+                  Set<S> post_set=post(ts, state, action);
+                  int size_post=post_set.size();
+                  if (size_post > 1) {
+                     return false;
+                 }
+             }
+         }
+		return true;
+	}
+
+	@Override
     public <S, A, P> boolean isAPDeterministic(TransitionSystem<S, A, P> ts) {
 
     	Set<S> init_set=ts.getInitialStates();
 		int size_set_init=init_set.size();
 		if(size_set_init<=1){
-
-        int same=0;
         Set<S> states=ts.getStates();
-        for(S state: states) {
-            Set<S> post_ts = post(ts, state);
-            Collection<Set<P>> labels_value= ts.getLabelingFunction().values();
-            for(Set<P> labels : labels_value) {
-                for(S s_post : post_ts) {
-                    if(isAPDeterministicHelp(ts,labels,s_post)){
-                        same++;
-                        if(same >1)
-                            return false;
-                    }
-                }
-                same=0;
-            }
-        }
+        return isAPDeterministic_post(states,ts);
+     
 		}
 		else
 			return false;
-        return true;
     }
     
-    private <S, A, P> boolean isAPDeterministicHelp(TransitionSystem<S, A, P> ts, Set<P> labels, S s_post){
-        if(ts.getLabel(s_post).containsAll(labels) && labels.containsAll(ts.getLabel(s_post))) {
+    private <S, A, P> boolean isAPDeterministic_post(Set<S> states, TransitionSystem<S, A, P> ts) {
+    		int same=0;
+    	   for(S state: states) {
+               Set<S> post_ts = post(ts, state);
+               Collection<Set<P>> labels_value= ts.getLabelingFunction().values();
+               for(Set<P> labels : labels_value) {
+                   for(S s_post : post_ts) {
+                       if(isAPDeterministicHelp(ts,labels,s_post)){
+                           same++;
+                           if(same >1)
+                               return false;
+                       }
+                   }
+                   same=0;
+               }
+           }
+		return true;
+	}
+
+	private <S, A, P> boolean isAPDeterministicHelp(TransitionSystem<S, A, P> ts, Set<P> labels, S s_post){
+        if(ts.getLabel(s_post).containsAll(labels)){
+        	if(labels.containsAll(ts.getLabel(s_post))) {
             return true;
+        	}
+            else{
+            	return false;
+            }
         }
         return false;
     }
@@ -96,8 +109,13 @@ public class FvmFacadeImpl implements FvmFacade {
 
     @Override
     public <S, A, P> boolean isExecution(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
-        if(isInitialExecutionFragment(ts, e) && isMaximalExecutionFragment(ts, e)){
+        if(isInitialExecutionFragment(ts, e)){
+        	if(isMaximalExecutionFragment(ts, e)){
             return true;
+        	}
+        	else{
+        		return false;
+        	}
         }
         return false;
     }
@@ -112,7 +130,8 @@ public class FvmFacadeImpl implements FvmFacade {
                 return false;
             temp = temp.tail().tail();
         }
-        check_state_exist(ts,temp.head());
+        S from = temp.head();
+        check_state_exist(ts,from);
         return true;
 
     }
@@ -123,8 +142,9 @@ public class FvmFacadeImpl implements FvmFacade {
         S to=temp.tail().tail().head();
         Set<Transition<S, A>> transitions=ts.getTransitions();
         for(Transition<S, A> transition : transitions) {
-            if(transition.getFrom().equals(from) && transition.getAction().equals(action)
-                    && transition.getTo().equals(to))
+            if(transition.getFrom().equals(from))
+            	if(transition.getAction().equals(action))
+                    if( transition.getTo().equals(to))
                 return true;
         }
         return false;
@@ -170,98 +190,131 @@ public class FvmFacadeImpl implements FvmFacade {
         Set<S> post_set=new HashSet<S>();
         for(Transition<S, ?> transition : ts.getTransitions()) {
             S fromS=transition.getFrom();
-            if(fromS.equals(s)){
-                S Tos=transition.getTo();
-                post_set.add(Tos);
-            }
+            post_help1(transition,post_set,fromS,s);
         }
         return post_set;
     }
 
-    @Override
+    private <S> void post_help1(Transition<S, ?> transition, Set<S> post_set,S fromS,S s) {
+    	 if(fromS.equals(s)){
+             S Tos=transition.getTo();
+             post_set.add(Tos);
+         }	
+	}
+
+	@Override
     public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, Set<S> c) {
-        for(S state: c) {
-            check_state_exist(ts, state);
-        }
+		check_state_exist_set(c,ts);
+       
         Set<S> post_set = new HashSet<S>();
         for(Transition<S, ?> transition : ts.getTransitions()) {
             S fromS=transition.getFrom();
-            if(c.contains(fromS))
-            {
-                S Tos=transition.getTo();
-                post_set.add(Tos);
-            }
+            post_help2(transition,post_set,fromS,c);
         }
         return post_set;
     }
 
-    @Override
+   
+
+	private <S> void post_help2(Transition<S, ?> transition, Set<S> post_set, S fromS,Set<S> c) {
+    	  if(c.contains(fromS))
+          {
+              S Tos=transition.getTo();
+              post_set.add(Tos);
+          }
+	}
+
+	@Override
     public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, S s, A a) {
         check_action_exist(ts,a);
         check_state_exist(ts, s);
         Set<S> post_set = new HashSet<S>();
         for(Transition<S, A> transition : ts.getTransitions() ) {
             S fromS=transition.getFrom();
-            if(fromS.equals(s) && transition.getAction().equals(a))
-            {
-                S Tos=transition.getTo();
-                post_set.add(Tos);
-            }
+            post_help3(fromS,transition,a,post_set,s);
         }
         return post_set;
     }
 
-    @Override
+    private <S,A> void post_help3(S fromS, Transition<S, A> transition, A a, Set<S> post_set,S s) {	
+    	 if(fromS.equals(s))
+    		if(transition.getAction().equals(a))
+         {
+             S Tos=transition.getTo();
+             post_set.add(Tos);
+         }
+	}
+
+	@Override
     public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, Set<S> c, A a) {
         check_action_exist(ts,a);
         Set<S> states =ts.getStates();
-        for(S state :states) {
-            check_state_exist(ts, state);
-        }
+        check_state_exist_set(states,ts);
         Set<S> post_set = new HashSet<S>();
         for(Transition<S, A> transition : ts.getTransitions()) {
             S fromS=transition.getFrom();
-            if(c.contains(fromS) && transition.getAction().equals(a))
-            {
-                S Tos=transition.getTo();
-                post_set.add(Tos);
-            }
+            post_help4(fromS,c,transition,a,post_set);
+          
         }
         return post_set;
     }
     
-    @Override
+    private <S,A> void post_help4(S fromS, Set<S> c, Transition<S, A> transition, A a, Set<S> post_set) {
+		
+    	  if(c.contains(fromS))
+    		  if(transition.getAction().equals(a))
+          {
+              S Tos=transition.getTo();
+              post_set.add(Tos);
+          }
+	}
+
+	private <S,A> void check_state_exist_set(Set<S> states, TransitionSystem<S, A, ?> ts) {
+		
+    	  for(S state :states) {
+              check_state_exist(ts, state);
+          }
+	}
+
+	@Override
     public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, S s) {
         check_state_exist(ts, s);
         Set<S> pre_set=new HashSet<S>();
         for(Transition<S, ?> transition : ts.getTransitions()) {
             S Tos=transition.getTo();
-            if(Tos.equals(s)){
-                S fromS=transition.getFrom();
-                pre_set.add(fromS);
-            }
+            pre_help1(transition,pre_set,Tos,s);
+           
         }
         return pre_set;
     }
 
-    @Override
+    private <S> void pre_help1(Transition<S, ?> transition, Set<S> pre_set, S Tos, S s) {		
+    	 if(Tos.equals(s)){
+             S fromS=transition.getFrom();
+             pre_set.add(fromS);
+         }
+	}
+
+	@Override
     public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, Set<S> c) {
-        for(S state: c) {
-            check_state_exist(ts, state);
-        }
+		check_state_exist_set(c, ts);
         Set<S> pre_set = new HashSet<S>();
         for(Transition<S, ?> transition : ts.getTransitions()) {
             S Tos=transition.getTo();
-            if(c.contains(Tos))
-            {
-                S fromS=transition.getFrom();
-                pre_set.add(fromS);
-            }
+            pre_help2(Tos,c,pre_set,c,transition);
         }
         return pre_set;
     }
 
-    @Override
+    private <S> void pre_help2(S tos, Set<S> c, Set<S> pre_set, Set<S> c2,Transition<S, ?> transition) {
+    	  if(c.contains(tos))
+          {
+              S fromS=transition.getFrom();
+              pre_set.add(fromS);
+          }
+	}
+
+	@Override
     public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, S s, A a) {
 
         check_action_exist(ts,a);
@@ -269,58 +322,82 @@ public class FvmFacadeImpl implements FvmFacade {
         Set<S> pre_set = new HashSet<S>();
         for(Transition<S, A> transition : ts.getTransitions() ) {
             S ToS=transition.getTo();
-            if(ToS.equals(s) && transition.getAction().equals(a))
-            {
-                S fromS=transition.getFrom();
-                pre_set.add(fromS);
-            }
+            pre_help3(ToS,s,a,pre_set,transition);
         }
         return pre_set;
     }
 
-    @Override
+    private <S,A> void pre_help3(S toS, S s, A a, Set<S> pre_set, Transition<S, A> transition) {
+	
+    	 if(toS.equals(s))
+    		 if(transition.getAction().equals(a))
+         {
+             S fromS=transition.getFrom();
+             pre_set.add(fromS);
+         }
+	}
+
+	@Override
     public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, Set<S> c, A a) {
         check_action_exist(ts,a);
         Set<S> states =ts.getStates();
-        for(S state :states) {
-            check_state_exist(ts, state);
-        }
+        check_state_exist_set(states, ts);
         Set<S> pre_set = new HashSet<S>();
         for(Transition<S, A> transition : ts.getTransitions()) {
             S Tos=transition.getTo();
-            if(c.contains(Tos) && transition.getAction().equals(a))
-            {
-                S fromS=transition.getFrom();
-                pre_set.add(fromS);
-            }
+            pre_help4(c,Tos,transition,a,pre_set);
         }
         return pre_set;
     }
 
-    @Override
+    private <S,A> void pre_help4(Set<S> c, S tos, Transition<S, A> transition, A a, Set<S> pre_set) {
+		
+    	  if(c.contains(tos))
+    		  if(transition.getAction().equals(a))
+          {
+              S fromS=transition.getFrom();
+              pre_set.add(fromS);
+          }
+	}
+
+	@Override
     public <S, A> Set<S> reach(TransitionSystem<S, A, ?> ts) {
 
         Set<S> reach_states = new HashSet<S>();
         reach_help(reach_states,ts);
         boolean found = true;
         boolean isAdded = false;
-        while(found ==true) {
-            found = false;
-            for(Transition<S, A> transition : ts.getTransitions()) {
-                isAdded = false;
-                S fromS=transition.getFrom();
-                if(reach_states.contains(fromS)) {
-                    S getS=transition.getTo();
-                    isAdded = reach_states.add(getS);
-                    if(isAdded)
-                        found = true;
-                }
-            }
-        }
+        reach_help_add(found,isAdded,reach_states,ts);
         return reach_states;
     }
 
-    private <S, A> void reach_help(Set<S> reach_states, TransitionSystem<S, A, ?> ts) {
+    private <S, A> void reach_help_add(boolean found, boolean isAdded, Set<S> reach_states, TransitionSystem<S, A, ?> ts) {
+    	   while(found ==true) {
+               found = false;
+               Set<Transition<S, A>> ts_transitions=ts.getTransitions();
+               for(Transition<S, A> transition :ts_transitions) {
+                   isAdded = false;
+                   if(reach_help_contains(transition,reach_states)){
+                	   found=true;
+                   }
+               }
+           }
+	}
+
+	private<S,A > boolean reach_help_contains(Transition<S, A> transition, Set<S> reach_states) {
+		
+		 S fromS=transition.getFrom();
+		 if(reach_states.contains(fromS)) {
+             S getS=transition.getTo();
+            boolean isAdded = reach_states.add(getS);
+             if(isAdded)
+                 return true;
+         }
+		 return false;
+		
+	}
+
+	private <S, A> void reach_help(Set<S> reach_states, TransitionSystem<S, A, ?> ts) {
 
         for(S state : ts.getInitialStates()) {
             reach_states.add(state);
@@ -1120,10 +1197,8 @@ public class FvmFacadeImpl implements FvmFacade {
         NanoPromelaParser.StmtContext root_np= NanoPromelaFileReader.pareseNanoPromelaFile(filename);
         ProgramGraph<String, String> program_graph = new ProgramGraphImpl<>();
         String empty_string="";
-        program_graph.addLocation(empty_string);
         String root_txt=root_np.getText();
-        program_graph.addLocation(root_txt);
-        program_graph.setInitial(root_txt, true);
+        programGraphFromNanoPromela_addLocation(program_graph,root_np);
         programGraphFromNanoPromelaHelp(root_np, root_txt, empty_string, empty_string, empty_string, program_graph);
         return program_graph;
     }
@@ -1134,11 +1209,9 @@ public class FvmFacadeImpl implements FvmFacade {
         NanoPromelaParser.StmtContext root_np=NanoPromelaFileReader.pareseNanoPromelaString(nanopromela);
         ProgramGraph<String, String> program_graph = new ProgramGraphImpl<>();
         String empty_string="";
-        program_graph.addLocation(empty_string);
         String root_txt=root_np.getText();
-        program_graph.addLocation(root_txt);
-        program_graph.setInitial(root_txt, true);
-        programGraphFromNanoPromelaHelp(root_np,root_txt, empty_string, empty_string, empty_string, program_graph);
+        programGraphFromNanoPromela_addLocation(program_graph,root_np);
+        programGraphFromNanoPromelaHelp(root_np, root_txt, empty_string, empty_string, empty_string, program_graph);
         return program_graph;
     }
 
@@ -1148,15 +1221,24 @@ public class FvmFacadeImpl implements FvmFacade {
         NanoPromelaParser.StmtContext root_np=NanoPromelaFileReader.parseNanoPromelaStream(inputStream);
         ProgramGraph<String, String> program_graph = new ProgramGraphImpl<>();
         String empty_string="";
-        program_graph.addLocation(empty_string);
         String root_txt=root_np.getText();
-        program_graph.addLocation(root_txt);
-        program_graph.setInitial(root_txt, true);
+        programGraphFromNanoPromela_addLocation(program_graph,root_np);
         programGraphFromNanoPromelaHelp(root_np, root_txt, empty_string, empty_string, empty_string, program_graph);
         return program_graph;
     }
 
-    private void programGraphFromNanoPromelaHelp(ParseTree  root_np, String from_node, String post_np, String cond,
+    private void programGraphFromNanoPromela_addLocation(ProgramGraph<String, String> program_graph,
+			StmtContext root_np) {
+    	  String empty_string="";
+    	  program_graph.addLocation(empty_string);
+          String root_txt=root_np.getText();
+          program_graph.addLocation(root_txt);
+          program_graph.setInitial(root_txt, true);	
+	}
+
+
+
+	private void programGraphFromNanoPromelaHelp(ParseTree  root_np, String from_node, String post_np, String cond,
                                                  String to_node, ProgramGraph<String, String> program_graph) {
 
         int child_count;
@@ -1184,8 +1266,7 @@ public class FvmFacadeImpl implements FvmFacade {
                 }
     }
 
-    @SuppressWarnings("unchecked")
-    private  <L, A> void OtherCase(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
+    private void OtherCase(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
                                    ProgramGraph<String, String> program_graph) {
 
         String empty="";
@@ -1194,23 +1275,34 @@ public class FvmFacadeImpl implements FvmFacade {
         String to2= ";";
         String to3=post_np;
         String to_ans="";
-        if (to1.equals(empty) || to1.equals(temp))
+        if (!(!(to1.equals(empty)) && !(to1.equals(temp))))
             to_ans=to3;
-        else if (to3.equals(empty) || to3.equals(temp))
+        else if (!(!(to3.equals(empty)) && !(to3.equals(temp))))
             to_ans=to1;
         else to_ans=to1+to2+to3;
-        L to_np=(L) to_ans;
-        A action_np=(A)root_np.getText();
-        L from_np=(L) from_node;
-        PGTransition<L, A> trans_pg = new PGTransition<>(from_np, cond, action_np, to_np);
-        L loc_from=  trans_pg.getFrom();
-        L loc_to=trans_pg.getTo();
-        ((ProgramGraph<L, A>) program_graph).addLocation(loc_from);
-        ((ProgramGraph<L, A>) program_graph).addLocation(loc_to);
-        ((ProgramGraph<L, A>) program_graph).addTransition(trans_pg);
+        OtherCase_pgTransition(to_ans,root_np,from_node,cond,program_graph);
+       
     }
 
-    private void StmtContextHelp2(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
+    @SuppressWarnings("unchecked")
+	private <L,A> void OtherCase_pgTransition(String to_ans, ParseTree root_np, String from_node, String cond,
+			ProgramGraph<String, String> program_graph) {
+		
+   	 L to_np=(L) to_ans;
+     A action_np=(A)root_np.getText();
+     L from_np=(L) from_node;
+     PGTransition<L, A> trans_pg = new PGTransition<>(from_np, cond, action_np, to_np);
+     L loc_from=  trans_pg.getFrom();
+     L loc_to=trans_pg.getTo();
+     ((ProgramGraph<L, A>) program_graph).addLocation(loc_from);
+     ((ProgramGraph<L, A>) program_graph).addLocation(loc_to);
+     ((ProgramGraph<L, A>) program_graph).addTransition(trans_pg);
+		
+	}
+
+
+
+	private void StmtContextHelp2(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
                                   ProgramGraph<String, String> program_graph) {
 
         ParseTree child0=root_np.getChild(0);
@@ -1220,7 +1312,6 @@ public class FvmFacadeImpl implements FvmFacade {
 
     private void StmtContextHelp1(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
                                   ProgramGraph<String, String> program_graph) {
-
         String empty="";
         String temp="()";
         ParseTree child0=root_np.getChild(0);
@@ -1229,18 +1320,16 @@ public class FvmFacadeImpl implements FvmFacade {
         String post2= ";";
         String post3=post_np;
         String post_ans="";
-        if (post1.equals(empty) || post1.equals(temp))
+        if (!(!(post1.equals(empty)) && !(post1.equals(temp))))
             post_ans=post3;
-        else if (post3.equals(empty) || post3.equals(temp))
+        else if (!(!(post3.equals(empty)) && !(post3.equals(temp))))
             post_ans=post1;
         else post_ans=post1+post2+post3;
         programGraphFromNanoPromelaHelp(child0, from_node, post_ans, cond, to_node, program_graph);
         programGraphFromNanoPromelaHelp(child2, post_ans, post_np, empty, to_node, program_graph);
-
     }
 
-    @SuppressWarnings("unchecked")
-    private  <L, A> void DostmtContextHelp(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
+    private  void DostmtContextHelp(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
                                            ProgramGraph<String, String> program_graph) {
 
         String empty="";
@@ -1254,40 +1343,48 @@ public class FvmFacadeImpl implements FvmFacade {
             String neg1=neg;
             String neg2="||";
             String neg3= "(" + cond_ans + ")";
-            if (neg1.equals(empty) || neg1.equals(temp))
+            if (!(!(neg1.equals(empty)) && !(neg1.equals(temp))))
                 neg=neg3;
-            else if (neg3.equals(empty) || neg3.equals(temp))
+            else if (!(!(neg3.equals(empty)) && !(neg3.equals(temp))))
                 neg=neg1;
             else neg=neg1+neg2+neg3;
         }
         DostmtContextHelp_help2( root_np,  from_node,  post_np,  cond,  to_node,    program_graph,neg);
     }
 
-    @SuppressWarnings("unchecked")
-    private  <L, A> void DostmtContextHelp_help2(ParseTree root_np, String from_node, String post_np, String cond,
+    private  void DostmtContextHelp_help2(ParseTree root_np, String from_node, String post_np, String cond,
                                                  String to_node, ProgramGraph<String, String> program_graph, String neg) {
-
         String empty="";
         String temp="()";
         String fromTransAns="";
         String from_trans1=root_np.getText();
         String from_trans2= ";";
         String from_trans3= to_node + post_np;
-        if (from_trans1.equals(empty) || from_trans1.equals(temp))
+        if (!(!(from_trans1.equals(empty)) && !(from_trans1.equals(temp))))
             fromTransAns=from_trans3;
-        else if (from_trans3.equals(empty) || from_trans3.equals(temp))
+        else if (!(!(from_trans3.equals(empty)) && !(from_trans3.equals(temp))))
             fromTransAns=from_trans1;
         else fromTransAns=from_trans1+from_trans2+from_trans3;
         String consitionTransAns="";
         String cond_trans1=cond;
         String cond_trans2= " && ";
         String cond_trans3= "(!(" + neg + "))";
-        if (cond_trans1.equals(empty) || cond_trans1.equals(temp))
+        if (!(!(cond_trans1.equals(empty)) && !(cond_trans1.equals(temp))))
             consitionTransAns=cond_trans3;
-        else if (cond_trans3.equals(empty) || cond_trans3.equals(temp))
+        else if (!(!(cond_trans3.equals(empty)) && !(cond_trans3.equals(temp))))
             consitionTransAns=cond_trans1;
         else consitionTransAns=cond_trans1+cond_trans2+cond_trans3;
-        L to_np=(L) (to_node + post_np);
+        
+        DostmtContextHelp_help2_pgtransition(to_node,post_np,fromTransAns,program_graph,from_node,neg,consitionTransAns);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <L, A> void DostmtContextHelp_help2_pgtransition(String to_node, String post_np, String fromTransAns,
+			ProgramGraph<String, String> program_graph, String from_node, String neg, String consitionTransAns) {
+		
+    	
+    	String empty="";
+ 	   	L to_np=(L) (to_node + post_np);
         A action_np=(A) empty;
         L from_np=(L) fromTransAns;
         String cond_np="!(" + neg + ")";
@@ -1306,59 +1403,89 @@ public class FvmFacadeImpl implements FvmFacade {
         ((ProgramGraph<L, A>) program_graph).addLocation(loc_from1);
         ((ProgramGraph<L, A>) program_graph).addLocation(loc_to1);
         ((ProgramGraph<L, A>) program_graph).addTransition(trans_pg1);
-    }
+		
+	}
 
 
-    private void DostmtContextHelp_help(ParseTree root_np, String from_node, String post_np, String cond,
+
+
+	private void DostmtContextHelp_help(ParseTree root_np, String from_node, String post_np, String cond,
                                         String to_node, ProgramGraph<String, String> program_graph, int i) {
 
-        String empty="";
-        String temp="()";
-        String cond_ans = root_np.getChild(i).getChild(1).getText();
-        ParseTree child= root_np.getChild(i).getChild(3);
-        String post1=root_np.getText();
-        String post2= ";";
-        String post3=post_np;
-        String post_ans="";
-        if (post1.equals(empty) || post1.equals(temp))
-            post_ans=post3;
-        else if (post3.equals(empty) || post3.equals(temp))
-            post_ans=post1;
-        else post_ans=post1+post2+post3;
-        String cond1="(" + cond + ")";
-        String cond2=" && ";
-        String cond3="(" + cond_ans + ")";
-        String cond_ans_update="";
-        if (cond1.equals(empty) || cond1.equals(temp))
-            cond_ans_update=cond3;
-        else if (cond3.equals(empty) || cond3.equals(temp))
-            cond_ans_update=cond1;
-        else cond_ans_update=cond1+cond2+cond3;
+    	DostmtContextHelp_help1( root_np,  from_node,  post_np,  cond,to_node,  program_graph,  i);
+    	DostmtContextHelp_help2( root_np,  from_node,  post_np,  cond,to_node,  program_graph,  i);
+                
+    }
+    	
+    private void DostmtContextHelp_help2(ParseTree root_np, String from_node, String post_np, String cond,
+			String to_node, ProgramGraph<String, String> program_graph, int i) {
+	
+    	 String empty="";
+         String temp="()";
+         String cond_ans = root_np.getChild(i).getChild(1).getText();
+         ParseTree child= root_np.getChild(i).getChild(3);
         String from1=root_np.getText();
         String from2=";";
         String from3=to_node;
         String from_ans="";
-        if (from1.equals(empty) || from1.equals(temp))
+        if (!(!(from1.equals(empty)) && !(from1.equals(temp))))
             from_ans=from3;
-        else if (from3.equals(empty) || from3.equals(temp))
+        else if (!(!(from3.equals(empty)) && !(from3.equals(temp))))
             from_ans=from1;
         else from_ans=from1+from2+from3;
         String from1_new=from_ans;
         String from2_new=";";
         String from3_new=post_np;
         String from_ans_new="";
-        if (from1_new.equals(empty) || from1_new.equals(temp))
+        if (!(!(from1_new.equals(empty)) && !(from1_new.equals(temp))))
             from_ans_new=from3_new;
-        else if (from3_new.equals(empty) || from3_new.equals(temp))
+        else if (!(!(from3_new.equals(empty)) && !(from3_new.equals(temp))))
             from_ans_new=from1_new;
         else from_ans_new=from1_new+from2_new+from3_new;
-        programGraphFromNanoPromelaHelp(child, from_node, post_ans,cond_ans_update, to_node, program_graph);
+        String post1=root_np.getText();
+        String post2= ";";
+        String post3=post_np;
+        String post_ans="";
+        if (!(!(post1.equals(empty)) && !(post1.equals(temp))))
+            post_ans=post3;
+        else if (!(!(post3.equals(empty)) && !(post3.equals(temp))))
+            post_ans=post1;
+        else post_ans=post1+post2+post3;
+        String cond3="(" + cond_ans + ")";
         programGraphFromNanoPromelaHelp(child,from_ans_new, post_ans, cond3, to_node, program_graph);
-    }
+    
+		
+	}
 
+	private void DostmtContextHelp_help1(ParseTree root_np, String from_node, String post_np, String cond,
+			String to_node, ProgramGraph<String, String> program_graph, int i) {
+	
+    	  String empty="";
+          String temp="()";
+          String cond_ans = root_np.getChild(i).getChild(1).getText();
+          ParseTree child= root_np.getChild(i).getChild(3);
+          String post1=root_np.getText();
+          String post2= ";";
+          String post3=post_np;
+          String post_ans="";
+          if (!(!(post1.equals(empty)) && !(post1.equals(temp))))
+              post_ans=post3;
+          else if (!(!(post3.equals(empty)) && !(post3.equals(temp))))
+              post_ans=post1;
+          else post_ans=post1+post2+post3;
+          String cond1="(" + cond + ")";
+          String cond2=" && ";
+          String cond3="(" + cond_ans + ")";
+          String cond_ans_update="";
+          if (!(!(cond1.equals(empty)) && !(cond1.equals(temp))))
+              cond_ans_update=cond3;
+          else if (!(!(cond3.equals(empty)) && !(cond3.equals(temp))))
+              cond_ans_update=cond1;
+          else cond_ans_update=cond1+cond2+cond3;
+          programGraphFromNanoPromelaHelp(child, from_node, post_ans,cond_ans_update, to_node, program_graph);
+	}
 
-
-    private void IfstmtContextHelp(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
+	private void IfstmtContextHelp(ParseTree root_np, String from_node, String post_np, String cond, String to_node,
                                    ProgramGraph<String, String> program_graph) {
 
         String empty="";
@@ -1371,9 +1498,9 @@ public class FvmFacadeImpl implements FvmFacade {
             String cond2=" && ";
             String cond3="(" + root_np.getChild(i).getChild(1).getText() + ")";
             String cond_ans="";
-            if (cond1.equals(empty) || cond1.equals(temp))
+            if (!(!(cond1.equals(empty)) && !(cond1.equals(temp))))
                 cond_ans=cond3;
-            else if (cond3.equals(empty) || cond3.equals(temp))
+            else if (!(!(cond3.equals(empty)) && !(cond3.equals(temp))))
                 cond_ans=cond1;
             else cond_ans=cond1+cond2+cond3;
             programGraphFromNanoPromelaHelp(child, from_node, post_np,cond_ans, to_node, program_graph);
