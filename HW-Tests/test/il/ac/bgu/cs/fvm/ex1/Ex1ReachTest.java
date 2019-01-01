@@ -17,7 +17,6 @@ import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
  *
  * @author michael
  */
-
 public class Ex1ReachTest {
 
     FvmFacade sut = null;

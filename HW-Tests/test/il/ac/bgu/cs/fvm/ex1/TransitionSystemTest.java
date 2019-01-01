@@ -26,7 +26,6 @@ import static org.junit.Assert.fail;
 /**
  * Set of basic tests for {@link TransitionSystem} implementation.
  */
-//V
 public class TransitionSystemTest {
     
     public static enum States { S1, S2, S3 }
@@ -45,21 +44,21 @@ public class TransitionSystemTest {
 		ts.addState(S1);
 		ts.addState(S2);
 		ts.setInitial(S3, true);
-	} //V
+	}
 
     @Test( timeout=2000 )
 	public void initialStateMustBeInStatesValid() throws Exception {
 		ts.addState(S1);
 		ts.addState(S2);
 		ts.setInitial(S1, true);
-	} //V
+	}
 
 	@Test(expected = DeletionOfAttachedStateException.class, timeout=2000)
 	public void initialStateCantBeRemoved() throws Exception {
 		ts.addState(S1);
 		ts.setInitial(S1, true);
 		ts.removeState(S1);
-	} //V
+	}
 
 	@Test(timeout = 2000)
 	public void initialStateCanBeRemovedAfterCleaning() throws Exception {
@@ -67,7 +66,7 @@ public class TransitionSystemTest {
 		ts.setInitial(S1, true);
 		ts.setInitial(S1, false);
 		ts.removeState(S1);
-	} //V
+	}
 
 	@Test(expected = DeletionOfAttachedAtomicPropositionException.class, timeout=2000)
 	public void usedLabelCantBeRemoved() throws Exception {
@@ -75,7 +74,7 @@ public class TransitionSystemTest {
 		ts.addAtomicProposition(Q);
 		ts.addToLabel(S1, Q);
 		ts.removeAtomicProposition(Q);
-	} //V
+	}
 
 	@Test(timeout = 2000)
 	public void usedLabelCanBeRemovedAfterCleaning() throws Exception {
@@ -84,7 +83,7 @@ public class TransitionSystemTest {
 		ts.addToLabel(S1,Q);
 		ts.removeLabel(S1,Q);
 		ts.removeAtomicProposition(Q);
-	}// V
+	}
 
     @Test(timeout = 2000)
 	public void labeledStateLabelWorks() throws Exception {
@@ -94,21 +93,21 @@ public class TransitionSystemTest {
 		assertEquals( set(Q), ts.getLabel(S1) );
 		ts.addToLabel(S1,P);
 		assertEquals( set(Q,P), ts.getLabel(S1) );
-	} //V
+	}
     
     @Test(timeout = 2000)
 	public void labeledStateLabelWorks_emptysetLabel() throws Exception {
 		ts.addState(S1);
 		ts.addAtomicProposition(Q);
 		assertEquals( set(), ts.getLabel(S1) );
-	} //V
+	}
     
     @Test(expected=StateNotFoundException.class, timeout = 2000)
 	public void labeledStateInvalidStateError() throws Exception {
 		ts.addState(S1);
 		ts.getLabel(S3);
 		fail("When asked about the label of a nonexistent state, the transition system should throw a StateNotFoundException");
-	} //V
+	}
 
 	@Test(expected = DeletionOfAttachedStateException.class, timeout=2000)
 	public void labeledStateCantBeRemoved() throws Exception {
@@ -116,7 +115,7 @@ public class TransitionSystemTest {
 		ts.addAtomicProposition(P);
 		ts.addToLabel(S1,P);
 		ts.removeState(S1);
-	} //V
+	}
 
 	@Test(timeout = 2000)
 	public void labeledStateCanBeRemovedAfterCleaning() throws Exception {
@@ -125,7 +124,7 @@ public class TransitionSystemTest {
 		ts.addToLabel(S1, P);
 		ts.removeLabel(S1, P);
 		ts.removeState(S1);
-	} //v
+	}
 
 	@Test(timeout = 2000)
 	public void addValidTransition() throws Exception {
@@ -133,7 +132,7 @@ public class TransitionSystemTest {
 		ts.addState(S2);
 		ts.addAction(A1);
 		ts.addTransition( new Transition<>(S1, A1, S2) );
-	} //V
+	}
 
 	@Test(expected = InvalidTransitionException.class, timeout=2000)
 	public void addInvalidTransition_fromState() throws Exception {
@@ -141,7 +140,7 @@ public class TransitionSystemTest {
 		ts.addState(S2);
 		ts.addAction(A1);
 		ts.addTransition(new Transition<>(S3, A1, S2));
-	} //V
+	}
 
 	@Test(expected = InvalidTransitionException.class, timeout=2000)
 	public void addInvalidTransition_toState() throws Exception {
@@ -149,7 +148,7 @@ public class TransitionSystemTest {
 		ts.addState(S2);
 		ts.addAction(A1);
 		ts.addTransition(new Transition<>(S1, A1, S3));
-	} //V
+	}
 
 	@Test(expected = InvalidTransitionException.class, timeout=2000)
 	public void addInvalidTransition_action() throws Exception {
@@ -157,7 +156,7 @@ public class TransitionSystemTest {
 		ts.addState(S2);
 		ts.addAction(A1);
 		ts.addTransition(new Transition<>(S1, A3, S2));
-	} //V
+	}
 
 	@Test(expected = DeletionOfAttachedStateException.class, timeout=2000)
 	public void cannotRemoveStateInTransition_from() throws Exception {
@@ -166,7 +165,7 @@ public class TransitionSystemTest {
 		ts.addAction(A1);
 		ts.addTransition(new Transition<>(S1, A1, S2));
 		ts.removeState(S1);
-	} //V
+	}
 	
     @Test(expected = DeletionOfAttachedStateException.class, timeout=2000)
 	public void cannotRemoveStateInTransition_to() throws Exception {
@@ -175,7 +174,7 @@ public class TransitionSystemTest {
 		ts.addAction(A1);
 		ts.addTransition(new Transition<>(S1, A1, S2));
 		ts.removeState(S2);
-	} //V
+	}
 
 	@Test(expected = DeletionOfAttachedActionException.class, timeout=2000)
 	public void cannotRemoveActionInTransition() throws Exception {
@@ -184,6 +183,6 @@ public class TransitionSystemTest {
 		ts.addAction(A1);
 		ts.addTransition(new Transition<>(S1, A1, S2));
 		ts.removeAction(A1);
-	} //V
+	}
 	
 }

@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
  *
  * @author michael
  */
-
 public class Ex1DeterminismTest {
 
     FvmFacade sut = null;
@@ -34,6 +33,7 @@ public class Ex1DeterminismTest {
         TransitionSystem<Integer,String,String> circularTs = makeCircularTs(4);
         circularTs.setInitial( 2, true );
         assertFalse("TS has more than a single initial state", sut.isActionDeterministic(circularTs) );
+        
     }
     
     @Test(timeout = 2000)

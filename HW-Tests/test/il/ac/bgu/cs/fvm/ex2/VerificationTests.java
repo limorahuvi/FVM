@@ -74,7 +74,7 @@ public class VerificationTests {
 
 	@Test
 	public void nanopromelaTest() throws Exception {
-		try (InputStream in = getClass().getClassLoader().getResourceAsStream("il/ac/bgu/cs/fvm/ex3/tst1.np")) {
+		try (InputStream in = getClass().getClassLoader().getResourceAsStream("il/ac/bgu/cs/fvm/ex2/tst1.np")) {
 			ProgramGraph<String, String> pg = fvmFacadeImpl.programGraphFromNanoPromela(in);
 			TransitionSystem<Pair<String, Map<String, Object>>, String, String> ts = fvmFacadeImpl.transitionSystemFromProgramGraph(pg, set(new ParserBasedActDef()), set(new ParserBasedCondDef()));
 

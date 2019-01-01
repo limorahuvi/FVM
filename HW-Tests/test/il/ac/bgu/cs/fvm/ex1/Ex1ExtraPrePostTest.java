@@ -16,7 +16,6 @@ import static il.ac.bgu.cs.fvm.util.CollectionHelper.*;
  * 
  * @author michael
  */
-
 public class Ex1ExtraPrePostTest {
     
     TSTestUtils m = null;

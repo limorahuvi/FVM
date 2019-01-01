@@ -19,7 +19,6 @@ import il.ac.bgu.cs.fvm.transitionsystem.AlternatingSequence;
  *
  * @author michael
  */
-
 public class Ex1FragmentsTest {
 
     FvmFacade sut = null;

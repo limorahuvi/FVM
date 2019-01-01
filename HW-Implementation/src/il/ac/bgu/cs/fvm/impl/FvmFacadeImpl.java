@@ -17,11 +17,14 @@ import il.ac.bgu.cs.fvm.transitionsystem.AlternatingSequence;
 import il.ac.bgu.cs.fvm.transitionsystem.Transition;
 import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
 import il.ac.bgu.cs.fvm.util.Pair;
+import il.ac.bgu.cs.fvm.verification.VerificationFailed;
 import il.ac.bgu.cs.fvm.verification.VerificationResult;
 import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import il.ac.bgu.cs.fvm.verification.VerificationSucceeded;
 import org.antlr.v4.runtime.tree.ParseTree;
 /**
  * Implement the methods in this class. You may add additional classes as you
@@ -424,23 +427,6 @@ public class FvmFacadeImpl implements FvmFacade {
     private <T> Set<T> union (Set<T> s1, Set<T> s2){
         Set<T> unioned = Stream.concat(s1.stream(), s2.stream()).collect(Collectors.toSet());
         return unioned;
-    }
-
-    private <T> List<T> unionToList (Set<T> s1, Set<T> s2){
-        List<T> unioned = Stream.concat(s1.stream(), s2.stream()).collect(Collectors.toList());
-        return unioned;
-    }
-
-    private <T> Set<T> intersection (Set<T> s1, Set<T> s2){
-        Set<T> intersectioned = new HashSet<>();
-        for(T a:s1){
-            for(T b:s2){
-                if(a.equals(b)){
-                    intersectioned.add(a);
-                }
-            }
-        }
-        return intersectioned;
     }
 
     @Override
@@ -1188,7 +1174,82 @@ public class FvmFacadeImpl implements FvmFacade {
 
     @Override
     public <Sts, Saut, A, P> TransitionSystem<Pair<Sts, Saut>, A, Saut> product(TransitionSystem<Sts, A, P> ts, Automaton<Saut, P> aut) {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement product
+        TransitionSystem<Pair<Sts, Saut>, A, Saut> result = createTransitionSystem();
+        getInitialStatesOfProduct(ts,aut, result);
+        addRestStates(ts,aut, result);
+        return result;
+    }
+
+    private <Saut,A, P, Sts> void addRestStates(TransitionSystem<Sts,A,P> ts, Automaton<Saut,P> aut, TransitionSystem<Pair<Sts,Saut>,A,Saut> result) {
+        List<Pair<Sts, Saut>> toCheck = new ArrayList<>(result.getInitialStates());
+        List<Pair<Sts, Saut>> checked = new ArrayList<>();
+        while (!toCheck.isEmpty()) {
+            Pair<Sts, Saut> current = toCheck.get(0);
+            checkState(current, checked, toCheck, ts,aut, result);
+            checked.add(current);
+            toCheck.remove(current);
+        }
+    }
+
+    private <Saut, Sts, A, P> void checkState(Pair<Sts,Saut> current, List<Pair<Sts,Saut>> checked, List<Pair<Sts,Saut>> toCheck, TransitionSystem<Sts,A,P> ts, Automaton<Saut,P> aut, TransitionSystem<Pair<Sts,Saut>,A,Saut> result) {
+        ts.getTransitions().forEach(trans -> {
+            if (isStateFirstInTrans(current, trans)) {
+                Set<Saut> next = aut.nextStates(current.getSecond(), ts.getLabel(trans.getTo()));
+                if(next != null){
+                    updateResultWithNextStates(current, checked, toCheck, ts, aut, result, trans);
+                }
+            }
+        });
+    }
+
+    private <Saut, Sts, A, P> void updateResultWithNextStates(Pair<Sts, Saut> current, List<Pair<Sts, Saut>> checked, List<Pair<Sts, Saut>> toCheck, TransitionSystem<Sts, A, P> ts, Automaton<Saut, P> aut, TransitionSystem<Pair<Sts, Saut>, A, Saut> result, Transition<Sts, A> trans) {
+        Set<Saut> nextStates=aut.nextStates(current.getSecond(), ts.getLabel(trans.getTo()));
+        Set<Pair<Sts, Saut>> newStates = new HashSet<>();
+        nextStates.forEach(s->newStates.add(Pair.pair(trans.getTo(), s)));
+        if (!newStates.isEmpty()) {
+            addNewStatesToResult(current, checked, toCheck, result, trans, newStates);
+        }
+    }
+
+    private <Saut, Sts, A> void addNewStatesToResult(Pair<Sts, Saut> current, List<Pair<Sts, Saut>> checked, List<Pair<Sts, Saut>> toCheck, TransitionSystem<Pair<Sts, Saut>, A, Saut> result, Transition<Sts, A> trans, Set<Pair<Sts, Saut>> newStates) {
+        result.addAction(trans.getAction());
+        newStates.forEach(s -> {
+            addNewStateToResult(current, checked, toCheck, result, trans, s);
+        });
+    }
+
+    private <Saut, Sts, A> void addNewStateToResult(Pair<Sts, Saut> current, List<Pair<Sts, Saut>> checked, List<Pair<Sts, Saut>> toCheck, TransitionSystem<Pair<Sts, Saut>, A, Saut> result, Transition<Sts, A> trans, Pair<Sts, Saut> s) {
+        result.addAtomicProposition(s.getSecond());
+        result.addState(s);
+        result.addTransition(new Transition<>(current, trans.getAction(), s));
+        result.addToLabel(s, s.getSecond());
+        updateToCheck(checked, toCheck, s);
+    }
+
+    private <Saut, Sts> void updateToCheck(List<Pair<Sts, Saut>> checked, List<Pair<Sts, Saut>> toCheck, Pair<Sts, Saut> s) {
+        if (!checked.contains(s)&& !toCheck.contains(s) ) {
+            toCheck.add(s);
+        }
+    }
+
+    private <Saut, Sts, A> boolean isStateFirstInTrans(Pair<Sts, Saut> state, Transition<Sts, A> trans) {
+        return state.getFirst().equals(trans.getFrom());
+    }
+
+    private <Saut, Sts,A,P> void getInitialStatesOfProduct(TransitionSystem<Sts,A,P> ts, Automaton<Saut,P> aut, TransitionSystem<Pair<Sts, Saut>, A, Saut> result) {
+        Set<Sts> tsInitials=ts.getInitialStates();
+        Set<Saut> autInitials=aut.getInitialStates();
+        tsInitials.forEach(tsInit->
+                autInitials.forEach(autInit->{
+                    Set<Pair<Sts,Saut>> initials = new HashSet<>();
+                    Set<Saut> next = aut.nextStates(autInit, ts.getLabel(tsInit));
+                    next.forEach(q->initials.add(Pair.pair(tsInit,q)));
+                    for (Pair<Sts,Saut> init:
+                            initials) {
+                        result.addState(init);
+                        result.setInitial(init, true);
+                    }
+                }));
     }
 
 
@@ -1218,7 +1279,6 @@ public class FvmFacadeImpl implements FvmFacade {
 
     @Override
     public ProgramGraph<String, String> programGraphFromNanoPromela(InputStream inputStream) throws Exception {
-
         NanoPromelaParser.StmtContext root_np=NanoPromelaFileReader.parseNanoPromelaStream(inputStream);
         ProgramGraph<String, String> program_graph = new ProgramGraphImpl<>();
         String empty_string="";
@@ -1508,14 +1568,111 @@ public class FvmFacadeImpl implements FvmFacade {
         }
     }
 
-
-
-    //=============================================================================
-    //=============================================================================
-
     @Override
     public <S, A, P, Saut> VerificationResult<S> verifyAnOmegaRegularProperty(TransitionSystem<S, A, P> ts, Automaton<Saut, P> aut) {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement verifyAnOmegaRegularProperty
+        TransitionSystem<Pair<S, Saut>, A, Saut> product = product(ts,aut);
+        Set<Saut> accStates = aut.getAcceptingStates();
+        Set<Pair<S, Saut>> initialStates=product.getInitialStates();
+        for(Pair<S, Saut> s0 : initialStates){
+            List<Pair<S, Saut>> DFSresult = DFS(s0, product, accStates);
+            for(Pair<S, Saut> s : DFSresult){
+                VerificationResult<S> failed = checkForCycle(product, accStates, s0, s);
+                if (failed != null)
+                    return failed;
+            }
+        }
+        return new VerificationSucceeded<>();
+    }
+
+    private <S, A, Saut> VerificationResult<S> checkForCycle(TransitionSystem<Pair<S, Saut>, A, Saut> product, Set<Saut> accStates, Pair<S, Saut> s0, Pair<S, Saut> s) {
+        if(!DFS(s, product, accStates).contains(s))
+            return null;
+        return createFailedFromCycle(product, s0, s);
+    }
+
+    private <S, A, Saut> VerificationFailed<S> createFailedFromCycle(TransitionSystem<Pair<S, Saut>, A, Saut> product, Pair<S, Saut> s0, Pair<S, Saut> s) {
+        VerificationFailed<S> failed = new VerificationFailed<>();
+        List<S> circle = path(s, s, product);
+        circle.remove(0);
+        failed.setCycle(circle);
+        failed.setPrefix(path(s0, s, product));
+        return failed;
+    }
+
+    private <S, A, P, Saut> List<Pair<S,Saut>> DFS(Pair<S,Saut> start, TransitionSystem<Pair<S,Saut>, A, P> ts, Set<Saut> badStates){
+        ArrayList<Pair<S,Saut>> toCheck = new ArrayList<>(ts.getStates());
+        Stack<Pair<S,Saut>> stack = new Stack<>();
+        List<Pair<S,Saut>> result = new ArrayList<>();
+        stack.push(start);
+        while(!stack.isEmpty()){
+            DFSstep(ts, badStates, result, toCheck, stack);
+        }
+        return result;
+    }
+
+    private <S, A, P, Saut> void DFSstep(TransitionSystem<Pair<S, Saut>, A, P> ts, Set<Saut> badStates, List<Pair<S, Saut>> result, ArrayList<Pair<S, Saut>> toCheck, Stack<Pair<S, Saut>> stack) {
+        Pair<S,Saut> state = stack.pop();
+        Set<Transition<Pair<S, Saut>, A>> transitionsWithState = createTransitionsWithStateAsGetFrom(ts, state);
+        transitionsWithState.forEach(transition->{
+            updateStack(toCheck, stack, transition);
+            updateResult(badStates, result, transition);
+        });
+        toCheck.remove(state);
+    }
+
+    private <S, A, P, Saut> Set<Transition<Pair<S, Saut>, A>> createTransitionsWithStateAsGetFrom(TransitionSystem<Pair<S, Saut>, A, P> ts, Pair<S, Saut> state) {
+        Set<Transition<Pair<S, Saut>, A>> transitions=ts.getTransitions();
+        Set<Transition<Pair<S, Saut>, A>> transitionsWithState=new HashSet<>();
+        transitions.forEach(transition->{
+            if(state.equals(transition.getFrom()))
+                transitionsWithState.add(transition);
+        });
+        return transitionsWithState;
+    }
+
+    private <S, A, Saut> void updateResult(Set<Saut> badStates, List<Pair<S, Saut>> result, Transition<Pair<S, Saut>, A> transition) {
+        if(!result.contains(transition.getTo()) && badStates.contains(transition.getTo().getSecond()) ) {
+            result.add(transition.getTo());
+        }
+    }
+
+    private <S, A, Saut> void updateStack(ArrayList<Pair<S, Saut>> toCheck, Stack<Pair<S, Saut>> stack, Transition<Pair<S, Saut>, A> transition) {
+        if(!stack.contains(transition.getTo())&&toCheck.contains(transition.getTo()) ) {
+            stack.push(transition.getTo());
+        }
+    }
+
+    private <S, A, P, Saut> List<S> path(Pair<S,Saut> start, Pair<S,Saut> end, TransitionSystem<Pair<S,Saut>, A, P> ts){
+        Map<Pair<S,Saut>,List<List<S>>> paths = new HashMap<>();
+        paths.put(start, Collections.singletonList(Collections.singletonList(start.getFirst())));
+        Stack<Pair<S,Saut>> stack = new Stack<>();
+        stack.push(start);
+        ArrayList<Pair<S,Saut>> toCheck = new ArrayList<>(ts.getStates());
+        while(!stack.isEmpty()){
+            innerDFSstep(ts, toCheck, paths, stack);
+        }
+        return paths.get(end).get(0);
+    }
+
+    private <S, A, P, Saut> void innerDFSstep(TransitionSystem<Pair<S, Saut>, A, P> ts, ArrayList<Pair<S, Saut>> toCheck, Map<Pair<S, Saut>, List<List<S>>> paths, Stack<Pair<S, Saut>> stack) {
+        Pair<S,Saut> state = stack.pop();
+        toCheck.remove(state);
+        Set<Transition<Pair<S, Saut>, A>> transitionsWithState = createTransitionsWithStateAsGetFrom(ts, state);
+        transitionsWithState.forEach(transition->{
+            updateStack(toCheck, stack, transition);
+            updatePath(paths, transition);
+        });
+    }
+
+    private <S, A, Saut> void updatePath(Map<Pair<S, Saut>, List<List<S>>> paths, Transition<Pair<S, Saut>, A> transition) {
+        List<List<S>> toAdd = new ArrayList<>();
+        Pair<S, Saut> state=transition.getFrom();
+        paths.get(state).forEach(lst ->{
+            List<S> tmpList = new ArrayList<>(lst);
+            tmpList.add(transition.getTo().first);
+            toAdd.add(tmpList);
+        });
+        paths.put(transition.getTo(), toAdd);
     }
 
     @Override
